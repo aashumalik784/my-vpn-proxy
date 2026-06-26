@@ -1,27 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My VPN Proxy</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin: 0; padding: 50px 20px; }
-        h1 { font-size: 2.5em; }
-        input { padding: 15px; width: 80%; max-width: 500px; border-radius: 50px; border: none; font-size: 16px; margin: 20px 0; }
-        button { padding: 15px 40px; background: white; color: #764ba2; border: none; border-radius: 50px; font-weight: bold; font-size: 16px; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My VPN - Connect to the World</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .header { text-align: center; margin: 30px 0; }
+    .header h1 { font-size: 3em; margin-bottom: 10px; }
+    .header p { font-size: 1.2em; opacity: 0.9; }
+    
+    .vpn-container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 30px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .status-display {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 15px;
+    }
+    .status-display h2 { font-size: 2em; margin-bottom: 10px; }
+    .status-display .country { font-size: 1.5em; opacity: 0.9; }
+    
+    .connect-btn {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: none;      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 1.5em;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 0 auto 30px;
+      display: block;
+      box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+      transition: all 0.3s;
+    }
+    .connect-btn:hover { transform: scale(1.05); }
+    .connect-btn:active { transform: scale(0.95); }
+    .connect-btn.connected {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      box-shadow: 0 10px 40px rgba(56, 239, 125, 0.5);
+    }
+    
+    .countries-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .country-btn {
+      padding: 15px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s;
+    }
+    .country-btn:hover { background: rgba(255,255,255,0.2); }
+    .country-btn.selected {
+      background: rgba(102, 126, 234, 0.6);
+      border-color: #667eea;
+    }
+    
+    .url-input {
+      width: 100%;
+      padding: 15px;
+      border-radius: 10px;
+      border: none;
+      margin: 20px 0;
+      font-size: 1em;
+    }
+    .browse-btn {
+      width: 100%;
+      padding: 15px;      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      cursor: pointer;
+    }
+    
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .loading.show { display: block; }
+  </style>
 </head>
 <body>
-    <h1>🔒 My VPN Proxy</h1>
-    <p>Enter URL to browse:</p>
-    <input type="text" id="urlInput" placeholder="https://example.com">
-    <br>
-    <button onclick="proxy()">Browse</button>
-    <script>
-        function proxy() {
-            const url = document.getElementById('urlInput').value;
-            if (url) { window.location.href = '/api/proxy?url=' + encodeURIComponent(url); }
-        }
-    </script>
+  <div class="header">
+    <h1>🔒 My VPN</h1>
+    <p>Connect to the World Securely</p>
+  </div>
+  
+  <div class="vpn-container">
+    <div class="status-display">
+      <h2 id="status">Disconnected</h2>
+      <div class="country" id="currentCountry">Select a country</div>
+    </div>
+    
+    <button class="connect-btn" id="connectBtn" onclick="toggleConnection()">
+      CONNECT
+    </button>
+    
+    <div class="loading" id="loading">
+      <p>Connecting...</p>
+    </div>
+    
+    <h3 style="margin: 20px 0 10px;">Select Country:</h3>
+    <div class="countries-grid" id="countriesGrid">
+      <!-- Countries will be loaded here -->
+    </div>
+    
+    <input type="text" class="url-input" id="urlInput" placeholder="Enter website URL (optional)" style="display:none;">
+    <button class="browse-btn" id="browseBtn" onclick="browseWebsite()" style="display:none;">
+      Browse Website
+    </button>
+  </div>
+
+  <script>
+    // YAHAN APNA RENDER BACKEND URL DALEIN
+    const BACKEND_URL = 'https://my-vpn-proxy-galo.onrender.com';    
+    let isConnected = false;
+    let selectedCountry = 'us';
+    let countries = {};
+
+    window.onload = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/countries`);
+        countries = await response.json();
+        renderCountries();
+      } catch (error) {
+        alert('Cannot connect to VPN server. Please check backend URL.');
+      }
+    };
+
+    function renderCountries() {
+      const grid = document.getElementById('countriesGrid');
+      grid.innerHTML = '';
+      Object.entries(countries).forEach(([code, data]) => {
+        const btn = document.createElement('button');
+        btn.className = `country-btn ${code === selectedCountry ? 'selected' : ''}`;
+        btn.innerHTML = `${data.flag} ${data.name}`;
+        btn.onclick = () => selectCountry(code);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectCountry(code) {
+      selectedCountry = code;
+      renderCountries();
+      if (isConnected) {
+        disconnect();
+        connect();
+      }
+    }
+
+    async function toggleConnection() {
+      if (isConnected) {
+        disconnect();
+      } else {
+        await connect();
+      }
+    }
+
+    async function connect() {
+      document.getElementById('loading').classList.add('show');
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/test`);
+        const data = await response.json();        
+        isConnected = true;
+        const country = countries[selectedCountry];
+        
+        document.getElementById('status').textContent = 'Connected';
+        document.getElementById('currentCountry').textContent = `${country.flag} ${country.name}`;
+        document.getElementById('connectBtn').textContent = 'DISCONNECT';
+        document.getElementById('connectBtn').classList.add('connected');
+        document.getElementById('urlInput').style.display = 'block';
+        document.getElementById('browseBtn').style.display = 'block';
+        
+      } catch (error) {
+        alert('Connection failed: ' + error.message);
+      }
+      
+      document.getElementById('loading').classList.remove('show');
+    }
+
+    function disconnect() {
+      isConnected = false;
+      document.getElementById('status').textContent = 'Disconnected';
+      document.getElementById('currentCountry').textContent = 'Select a country';
+      document.getElementById('connectBtn').textContent = 'CONNECT';
+      document.getElementById('connectBtn').classList.remove('connected');
+      document.getElementById('urlInput').style.display = 'none';
+      document.getElementById('browseBtn').style.display = 'none';
+    }
+
+    function browseWebsite() {
+      const url = document.getElementById('urlInput').value;
+      if (url) {
+        window.location.href = `${BACKEND_URL}/api/proxy?country=${selectedCountry}&url=${encodeURIComponent(url)}`;
+      }
+    }
+  </script>
 </body>
 </html>
