@@ -1,0 +1,6 @@
+{
+  "name": "my-vpn-frontend",
+  "version": "1.0.0",
+  "description": "VPN Frontend",
+  "private": true
+}
